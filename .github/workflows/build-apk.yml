@@ -3,7 +3,8 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
       - name: Setup Capacitor & Android
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           npx cap init "Group Ride Fuel" "com.groupride.fuel" --web-dir www
           npx cap add android
 
@@ -31,16 +32,16 @@ jobs:
         run: |
           node -e '
             const fs = require("fs");
-            const path = "android/app/src/main/AndroidManifest.xml";
-            let xml = fs.readFileSync(path, "utf8");
-            const perms = `
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET" />
-`;
+            const file = "android/app/src/main/AndroidManifest.xml";
+            let xml = fs.readFileSync(file, "utf8");
+            const perms = [
+              "    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />",
+              "    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />",
+              "    <uses-permission android:name=\"android.permission.INTERNET\" />"
+            ].join("\n");
             if (!xml.includes("ACCESS_FINE_LOCATION")) {
               xml = xml.replace("<application", perms + "\n    <application");
-              fs.writeFileSync(path, xml);
+              fs.writeFileSync(file, xml);
             }
           '
 
@@ -48,6 +49,7 @@ jobs:
         run: |
           npx cap copy android
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
